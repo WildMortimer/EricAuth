@@ -96,11 +96,11 @@ app.post('/login', async (req, res) => {
             let secret = fs.readFileSync("./Keys/private-key.pem").toString()
 
             let accessToken = await JWT.sign(payload, secret, { algorithm: 'RS256'})
+            res.cookie('JWT', accessToken, {httpOnly:true} )
 
             let refreshToken = await uid(19)
             res.cookie('refreshToken',refreshToken, { maxAge : 600 * 1000, httpOnly:true} )
-            res.cookie('JWT', accessToken, { maxAge : 60 * 1000, httpOnly:true} )
-
+            
             refreshTokens[refreshToken] = {}
             refreshTokens[refreshToken]["user"] = req.body["username"]
             refreshTokens[refreshToken]["tokenStatus"] = "active"
@@ -112,6 +112,12 @@ app.post('/login', async (req, res) => {
         }
     }
 })
+
+app.get('/key' , (req, res) => {
+    res.send(fs.readFileSync("./Keys/public-key.pem").toString())
+})
+
+app.get('/refresh')
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
