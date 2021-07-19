@@ -1,0 +1,132 @@
+<html>
+<head>
+    <title>Eric Auth Demo</title>
+</head>
+<body>
+
+    <div id="userData"></div>
+
+    <div id="buttonBar">
+        <button onclick="display('login')">Login</button>
+        <button onclick="display('createUser')">Create User</button>
+        <button style="display: none" id="modifyUsersButton" onclick="display('modifyUsers')">Modify Users</button>
+        <button onclick="display('loginSecret')">Logged In Secret</button>
+        <button onclick="logOut()">Log Out</button>
+    </div>
+
+    <br>
+
+    <div id="login" class="window">
+        <label for="loginUsername">Username</label>
+        <input id="loginUsername" type="text">
+        <br>
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password">
+        <br>
+        <button onclick="authPost({'username':document.getElementById('loginUsername').value,'password':document.getElementById('loginPassword').value}, 'login')">Login</button>
+    </div>
+    <div id="createUser" class="window">
+        <label for="createUserUsername">Username</label>
+        <input id="createUserUsername" type="text">
+        <br>
+        <label for="createUserPassword">Password</label>
+        <input id="createUserPassword" type="password">
+        <br>
+        <button onclick="authPost({'username':document.getElementById('createUserUsername').value,'password':document.getElementById('createUserPassword').value}, 'createUser')">Create User</button>
+    </div>
+    <div id="modifyUsers" class="window">
+        <label for="modifyUsersUsername">Username</label>
+        <input id="modifyUsersUsername" type="text">
+        <br>
+        <label for="modifyUsersAccess">Access Level</label>
+        <input id="modifyUsersAccess" type="text">
+        <br>
+        <button onclick="authPost({'username':document.getElementById('modifyUsersUsername').value,'accessLevel':document.getElementById('modifyUsersAccess').value}, 'modifyUser')">Modify User</button>
+    </div>
+    <div id="loginSecret" class="window">
+        <button onclick="snake()">Show Secret</button>
+        <div id="snakeText"></div>
+    </div>
+
+    <script src="src/jwt-decode.js"></script>
+    <script>
+        function display(windowID) {
+            for(let i = 0; i < document.getElementsByClassName("window").length; ++i) {
+                document.getElementsByClassName("window").item(i).style.display = "none"
+            }
+            document.getElementById(windowID).style.display = "block";
+        }
+        display("login")
+
+        function authPost(data, path) {
+            const Http = new XMLHttpRequest();
+            const url= "/auth/" + path;
+            Http.open("POST", url);
+            Http.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            Http.send(JSON.stringify(data));
+
+            Http.onreadystatechange = (e) => {
+                console.log(Http.responseText)
+                let JWT;
+                try{
+                    JWT = document.cookie
+                                    .split('; ')
+                                    .find(row => row.startsWith('JWT='))
+                                    .split('=')[1];
+                }
+                catch(e){
+                    console.log("no JWT present")
+                    return
+                }
+                decoded = jwtDecode(JWT.toString())
+
+                document.getElementById("userData").innerHTML = "Logged In as " + decoded["User"] + "<br> Access Level " + decoded["accessLevel"] + "<br>"
+
+                if(decoded["accessLevel"] == "root" || decoded["accessLevel"] == "admin") {
+                    document.getElementById("modifyUsersButton").style.display = "inline-block"
+                }
+                else {
+                    document.getElementById("modifyUsersButton").style.display = "none"
+                }
+                setTimeout(refresh,10000)
+            }
+            
+        }
+
+        function snake() {
+            const Http = new XMLHttpRequest();
+            const url= "/snake";
+            Http.open("GET", url);
+            Http.send()
+            Http.onreadystatechange = (e) => {
+                document.getElementById("snakeText").innerHTML = Http.responseText;
+            }
+        }
+
+        function logOut(){
+            const Http = new XMLHttpRequest();
+            const url= "/auth/logout";
+            Http.open("POST", url);
+            Http.send()
+
+            document.getElementById("userData").innerHTML = ""
+            document.getElementById("modifyUsersButton").style.display = "none"
+        }
+
+        function refresh() {
+            const Http = new XMLHttpRequest();
+            const url= "/auth/refresh";
+            Http.open("POST", url);
+            Http.send()
+
+            console.log("refresh")
+            setTimeout(refresh,10000)
+            
+        }
+
+        
+    </script>
+
+</body>
+
+</html>
